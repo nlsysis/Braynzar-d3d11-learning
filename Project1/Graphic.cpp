@@ -18,6 +18,8 @@ ID3D11InputLayout* vertLayout;
 ID3D11DepthStencilView *depthStencilView;
 ID3D11Texture2D *depthStencilBuffer;
 
+ID3D11RasterizerState* WireFrame;
+
 extern HWND hwnd;
 extern HRESULT hr;
 
@@ -141,6 +143,7 @@ void CleanUp()
 	depthStencilView->Release();
 	depthStencilBuffer->Release();
 	cbPerObjectBuffer->Release();
+	WireFrame->Release();
 }
 
 bool InitScene()
@@ -280,6 +283,14 @@ bool InitScene()
 
 	//Set the Projection matrix
 	camProjection = XMMatrixPerspectiveFovLH(0.4f*3.14f, (float)WIDTH / HEIGHT, 1.0f, 100.0f);
+
+	D3D11_RASTERIZER_DESC wfdesc;
+	ZeroMemory(&wfdesc, sizeof(D3D11_RASTERIZER_DESC));
+	wfdesc.FillMode = D3D11_FILL_WIREFRAME;
+	wfdesc.CullMode = D3D11_CULL_NONE;
+	hr = d3d11Device->CreateRasterizerState(&wfdesc, &WireFrame);
+
+	d3d11DevCon->RSSetState(WireFrame);
 
 	return true;
 }
