@@ -8,6 +8,7 @@ ID3D11RenderTargetView* renderTargetView;
 ID3D11Buffer* squareIndexBuffer;
 ID3D11Buffer* squareVertBuffer;
 ///////////////**************new**************////////////////////
+ID3D11Buffer* cbPerObjectBuffer;
 ID3D11VertexShader* VS;
 ID3D11PixelShader* PS;
 ID3D10Blob* VS_Buffer;
@@ -20,12 +21,29 @@ ID3D11Texture2D *depthStencilBuffer;
 extern HWND hwnd;
 extern HRESULT hr;
 
+XMMATRIX WVP;
+XMMATRIX World;
+XMMATRIX camView;
+XMMATRIX camProjection;
+
+XMVECTOR camPosition;
+XMVECTOR camTarget;
+XMVECTOR camUp;
+
+
 D3D11_INPUT_ELEMENT_DESC layout[] =
 {
 	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 };
 UINT numElements = ARRAYSIZE(layout);
+
+struct cbPerObject
+{
+	XMMATRIX  WVP;
+};
+
+cbPerObject cbPerObj;
 
 bool InitializeDirect3d11App(HINSTANCE hInstance)
 {
@@ -115,6 +133,7 @@ void CleanUp()
 	vertLayout->Release();
 	depthStencilView->Release();
 	depthStencilBuffer->Release();
+	cbPerObjectBuffer->Release();
 }
 
 bool InitScene()
@@ -207,13 +226,43 @@ bool InitScene()
 	//Set the Viewport
 	d3d11DevCon->RSSetViewports(1, &viewport);
 
+	//Create the buffer to send to the cbuffer in effect file
+	D3D11_BUFFER_DESC cbbd;
+	ZeroMemory(&cbbd, sizeof(D3D11_BUFFER_DESC));
+
+	cbbd.Usage = D3D11_USAGE_DEFAULT;
+	cbbd.ByteWidth = sizeof(cbPerObject);
+	cbbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbbd.CPUAccessFlags = 0;
+	cbbd.MiscFlags = 0;
+
+	hr = d3d11Device->CreateBuffer(&cbbd, NULL, &cbPerObjectBuffer);
+
+	//Camera information
+	camPosition = XMVectorSet(0.0f, 0.0f, -0.5f, 0.0f);
+	camTarget = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	//Set the View matrix
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+
+	//Set the Projection matrix
+	camProjection = XMMatrixPerspectiveFovLH(0.4f*3.14f, (float)WIDTH / HEIGHT, 1.0f, 100.0f);
 
 	return true;
 }
 
 void UpdateScene()
 {
+	World = XMMatrixIdentity();
 
+	WVP = World * camView * camProjection;
+
+	cbPerObj.WVP = XMMatrixTranspose(WVP);
+
+	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+
+	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
 }
 
 void DrawScene()
