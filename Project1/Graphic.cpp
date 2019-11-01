@@ -9,7 +9,7 @@ ID3D11RenderTargetView* renderTargetView;
 ID3D11Buffer* squareIndexBuffer;
 ID3D11Buffer* squareVertBuffer;
 ///////////////**************new**************////////////////////
-ID3D11Buffer* cbPerObjectBuffer;
+ID3D11Buffer* cbPerObjectBuffer;    //constant buffer
 ID3D11VertexShader* VS;
 ID3D11PixelShader* PS;
 ID3D10Blob* VS_Buffer;
@@ -482,15 +482,7 @@ void UpdateScene()
 	//Set cube2's world space matrix
 	cube2World = Rotation * Scale;
 
-	World = XMMatrixIdentity();
 
-	WVP = World * camView * camProjection;
-
-	cbPerObj.WVP = XMMatrixTranspose(WVP);
-
-	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
-
-	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
 }
 
 void DrawScene()
