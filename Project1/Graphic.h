@@ -20,14 +20,13 @@ bool InitScene();
 void UpdateScene();
 void DrawScene();
 
-//Vertex Structure and Vertex Layout (Input Layout)//
 struct Vertex    //Overloaded Vertex Structure
 {
 	Vertex() {}
 	Vertex(float x, float y, float z,
-		float cr, float cg, float cb, float ca)
-		: pos(x, y, z), color(cr, cg, cb, ca) {}
+		float u, float v)
+		: pos(x, y, z), texCoord(u, v) {}
 
 	XMFLOAT3 pos;
-	XMFLOAT4 color;
+	XMFLOAT2 texCoord;
 };
