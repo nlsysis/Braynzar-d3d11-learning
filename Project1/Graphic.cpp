@@ -1,4 +1,5 @@
 #include "Graphic.h"
+
 //Global Declarations - Interfaces//
 IDXGISwapChain* SwapChain;
 ID3D11Device* d3d11Device;
@@ -31,6 +32,10 @@ ID3D11RasterizerState* CWcullMode;
 //for pixel clip
 ID3D11RasterizerState* noCull;
 
+//for lighting
+ID3D11Buffer* cbPerFrameBuffer;
+
+
 extern HWND hwnd;
 extern HRESULT hr;
 
@@ -55,15 +60,40 @@ D3D11_INPUT_ELEMENT_DESC layout[] =
 {
 	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 UINT numElements = ARRAYSIZE(layout);
 
 struct cbPerObject
 {
 	XMMATRIX  WVP;
+	XMMATRIX World;
 };
 
 cbPerObject cbPerObj;
+
+struct Light
+{
+	Light()
+	{
+		ZeroMemory(this, sizeof(Light));
+	}
+	XMFLOAT3 dir;
+	float pad;
+	XMFLOAT4 ambient;
+	XMFLOAT4 diffuse;
+};
+
+Light light;
+
+//cbPerFrame Structure
+struct cbPerFrame
+{
+	Light  light;
+};
+
+cbPerFrame constbuffPerFrame;
+
 
 bool InitializeDirect3d11App(HINSTANCE hInstance)
 {
@@ -131,11 +161,9 @@ bool InitializeDirect3d11App(HINSTANCE hInstance)
 	d3d11DevCon->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
 	///////////////**************new**************////////////////////
 
-	/*hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\braynzar.png",
-		NULL, NULL, &CubesTexture, NULL);*/
-
-	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\cage.jpg",
+	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\braynzar.png",
 		NULL, NULL, &CubesTexture, NULL);
+
 
 
 	D3D11_RASTERIZER_DESC rastDesc;
@@ -179,6 +207,10 @@ void CleanUp()
 
 	//for pixel clip
 	noCull->Release();
+
+	//for lighting
+	//d2dTexture->Release();
+	cbPerFrameBuffer->Release();
 }
 
 bool InitScene()
@@ -186,54 +218,60 @@ bool InitScene()
 	//Compile Shaders from shader file
 	hr = D3DX11CompileFromFile("Effects.fx", 0, 0, "VS", "vs_4_0", 0, 0, 0, &VS_Buffer, 0, 0);
 	hr = D3DX11CompileFromFile("Effects.fx", 0, 0, "PS", "ps_4_0", 0, 0, 0, &PS_Buffer, 0, 0);
+	//hr = D3DX11CompileFromFile("Effects.fx", 0, 0, "D2D_PS", "ps_4_0", 0, 0, 0, &D2D_PS_Buffer, 0, 0);
 
 	//Create the Shader Objects
 	hr = d3d11Device->CreateVertexShader(VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), NULL, &VS);
 	hr = d3d11Device->CreatePixelShader(PS_Buffer->GetBufferPointer(), PS_Buffer->GetBufferSize(), NULL, &PS);
+	//hr = d3d11Device->CreatePixelShader(D2D_PS_Buffer->GetBufferPointer(), D2D_PS_Buffer->GetBufferSize(), NULL, &D2D_PS);
 
 	//Set Vertex and Pixel Shaders
 	d3d11DevCon->VSSetShader(VS, 0, 0);
 	d3d11DevCon->PSSetShader(PS, 0, 0);
 
 	///////////////**************new**************////////////////////
+
+	light.dir = XMFLOAT3(0.25f, 0.5f, -1.0f);
+	light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	light.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	//Create the vertex buffer
 	Vertex v[] =
 	{
 		// Front Face
-		Vertex(-1.0f, -1.0f, -1.0f, 0.0f, 1.0f),
-		Vertex(-1.0f,  1.0f, -1.0f, 0.0f, 0.0f),
-		Vertex(1.0f,  1.0f, -1.0f, 1.0f, 0.0f),
-		Vertex(1.0f, -1.0f, -1.0f, 1.0f, 1.0f),
+		Vertex(-1.0f, -1.0f, -1.0f, 0.0f, 1.0f,-1.0f, -1.0f, -1.0f),
+		Vertex(-1.0f,  1.0f, -1.0f, 0.0f, 0.0f,-1.0f,  1.0f, -1.0f),
+		Vertex(1.0f,  1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, -1.0f),
+		Vertex(1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f, -1.0f),
 
 		// Back Face
-		Vertex(-1.0f, -1.0f, 1.0f, 1.0f, 1.0f),
-		Vertex(1.0f, -1.0f, 1.0f, 0.0f, 1.0f),
-		Vertex(1.0f,  1.0f, 1.0f, 0.0f, 0.0f),
-		Vertex(-1.0f,  1.0f, 1.0f, 1.0f, 0.0f),
+		Vertex(-1.0f, -1.0f, 1.0f, 1.0f, 1.0f,-1.0f, -1.0f, 1.0f),
+		Vertex(1.0f, -1.0f, 1.0f, 0.0f, 1.0f, 1.0f, -1.0f, 1.0f),
+		Vertex(1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 1.0f,  1.0f, 1.0f),
+		Vertex(-1.0f,  1.0f, 1.0f, 1.0f, 0.0f,-1.0f,  1.0f, 1.0f),
 
 		// Top Face
-		Vertex(-1.0f, 1.0f, -1.0f, 0.0f, 1.0f),
-		Vertex(-1.0f, 1.0f,  1.0f, 0.0f, 0.0f),
-		Vertex(1.0f, 1.0f,  1.0f, 1.0f, 0.0f),
-		Vertex(1.0f, 1.0f, -1.0f, 1.0f, 1.0f),
+		Vertex(-1.0f, 1.0f, -1.0f, 0.0f, 1.0f,-1.0f, 1.0f, -1.0f),
+		Vertex(-1.0f, 1.0f,  1.0f, 0.0f, 0.0f,-1.0f, 1.0f,  1.0f),
+		Vertex(1.0f, 1.0f,  1.0f, 1.0f, 0.0f, 1.0f, 1.0f,  1.0f),
+		Vertex(1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, -1.0f),
 
 		// Bottom Face
-		Vertex(-1.0f, -1.0f, -1.0f, 1.0f, 1.0f),
-		Vertex(1.0f, -1.0f, -1.0f, 0.0f, 1.0f),
-		Vertex(1.0f, -1.0f,  1.0f, 0.0f, 0.0f),
-		Vertex(-1.0f, -1.0f,  1.0f, 1.0f, 0.0f),
+		Vertex(-1.0f, -1.0f, -1.0f, 1.0f, 1.0f,-1.0f, -1.0f, -1.0f),
+		Vertex(1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, -1.0f, -1.0f),
+		Vertex(1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, -1.0f,  1.0f),
+		Vertex(-1.0f, -1.0f,  1.0f, 1.0f, 0.0f,-1.0f, -1.0f,  1.0f),
 
 		// Left Face
-		Vertex(-1.0f, -1.0f,  1.0f, 0.0f, 1.0f),
-		Vertex(-1.0f,  1.0f,  1.0f, 0.0f, 0.0f),
-		Vertex(-1.0f,  1.0f, -1.0f, 1.0f, 0.0f),
-		Vertex(-1.0f, -1.0f, -1.0f, 1.0f, 1.0f),
+		Vertex(-1.0f, -1.0f,  1.0f, 0.0f, 1.0f,-1.0f, -1.0f,  1.0f),
+		Vertex(-1.0f,  1.0f,  1.0f, 0.0f, 0.0f,-1.0f,  1.0f,  1.0f),
+		Vertex(-1.0f,  1.0f, -1.0f, 1.0f, 0.0f,-1.0f,  1.0f, -1.0f),
+		Vertex(-1.0f, -1.0f, -1.0f, 1.0f, 1.0f,-1.0f, -1.0f, -1.0f),
 
 		// Right Face
-		Vertex(1.0f, -1.0f, -1.0f, 0.0f, 1.0f),
-		Vertex(1.0f,  1.0f, -1.0f, 0.0f, 0.0f),
-		Vertex(1.0f,  1.0f,  1.0f, 1.0f, 0.0f),
-		Vertex(1.0f, -1.0f,  1.0f, 1.0f, 1.0f),
+		Vertex(1.0f, -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, -1.0f, -1.0f),
+		Vertex(1.0f,  1.0f, -1.0f, 0.0f, 0.0f, 1.0f,  1.0f, -1.0f),
+		Vertex(1.0f,  1.0f,  1.0f, 1.0f, 0.0f, 1.0f,  1.0f,  1.0f),
+		Vertex(1.0f, -1.0f,  1.0f, 1.0f, 1.0f, 1.0f, -1.0f,  1.0f),
 	};
 
 	DWORD indices[] = {
@@ -355,6 +393,20 @@ bool InitScene()
 
 	//d3d11DevCon->RSSetState(WireFrame);
 
+	// Describe the Sample State
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	//Create the Sample State
+	hr = d3d11Device->CreateSamplerState(&sampDesc, &CubesTexSamplerState);
+
 	//blending equation
 	D3D11_BLEND_DESC blendDesc;
 	ZeroMemory(&blendDesc, sizeof(blendDesc));
@@ -388,6 +440,17 @@ bool InitScene()
 
 	cmdesc.FrontCounterClockwise = false;
 	hr = d3d11Device->CreateRasterizerState(&cmdesc, &CWcullMode);
+
+	//for lighting
+	ZeroMemory(&cbbd, sizeof(D3D11_BUFFER_DESC));
+
+	cbbd.Usage = D3D11_USAGE_DEFAULT;
+	cbbd.ByteWidth = sizeof(cbPerFrame);
+	cbbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbbd.CPUAccessFlags = 0;
+	cbbd.MiscFlags = 0;
+
+	hr = d3d11Device->CreateBuffer(&cbbd, NULL, &cbPerFrameBuffer);
 	return true;
 }
 
@@ -438,54 +501,21 @@ void DrawScene()
 
 	//Refresh the Depth/Stencil view
 	d3d11DevCon->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	//"fine-tune" the blending equation
-	float blendFactor[] = { 0.35f, 0.35f, 0.35f, 1.0f };
+	
+	constbuffPerFrame.light = light;
+	d3d11DevCon->UpdateSubresource(cbPerFrameBuffer, 0, NULL, &constbuffPerFrame, 0, 0);
+	d3d11DevCon->PSSetConstantBuffers(0, 1, &cbPerFrameBuffer);
 
+	//Reset Vertex and Pixel Shaders
+	d3d11DevCon->VSSetShader(VS, 0, 0);
+	d3d11DevCon->PSSetShader(PS, 0, 0);
+	
 	//Set the default blend state (no blending) for opaque objects
 	d3d11DevCon->OMSetBlendState(0, 0, 0xffffffff);
 
-	//Render opaque objects//
-
-	//Set the blend state for transparent objects
-	d3d11DevCon->OMSetBlendState(Transparency, blendFactor, 0xffffffff);
-
-	//*****Transparency Depth Ordering*****//
-	//Find which transparent object is further from the camera
-	//So we can render the objects in depth order to the render target
-
-	//Find distance from first cube to camera
-	XMVECTOR cubePos = XMVectorZero();
-
-	cubePos = XMVector3TransformCoord(cubePos, cube1World);
-
-	float distX = XMVectorGetX(cubePos) - XMVectorGetX(camPosition);
-	float distY = XMVectorGetY(cubePos) - XMVectorGetY(camPosition);
-	float distZ = XMVectorGetZ(cubePos) - XMVectorGetZ(camPosition);
-
-	float cube1Dist = distX * distX + distY * distY + distZ * distZ;
-
-	//Find distance from second cube to camera
-	cubePos = XMVectorZero();
-
-	cubePos = XMVector3TransformCoord(cubePos, cube2World);
-
-	distX = XMVectorGetX(cubePos) - XMVectorGetX(camPosition);
-	distY = XMVectorGetY(cubePos) - XMVectorGetY(camPosition);
-	distZ = XMVectorGetZ(cubePos) - XMVectorGetZ(camPosition);
-
-	float cube2Dist = distX * distX + distY * distY + distZ * distZ;
-
-	//If the first cubes distance is less than the second cubes
-	if (cube1Dist < cube2Dist)
-	{
-		//Switch the order in which the cubes are drawn
-		XMMATRIX tempMatrix = cube1World;
-		cube1World = cube2World;
-		cube2World = tempMatrix;
-	}
-
 
 	WVP = cube1World * camView * camProjection;
+	cbPerObj.World = XMMatrixTranspose(cube1World);
 	cbPerObj.WVP = XMMatrixTranspose(WVP);
 	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
 	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
@@ -493,10 +523,11 @@ void DrawScene()
 	d3d11DevCon->PSSetShaderResources(0, 1, &CubesTexture);
 	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
 
-	
+	d3d11DevCon->RSSetState(CWcullMode);
 	d3d11DevCon->DrawIndexed(36, 0, 0);
 
 	WVP = cube2World * camView * camProjection;
+	cbPerObj.World = XMMatrixTranspose(cube2World);
 	cbPerObj.WVP = XMMatrixTranspose(WVP);
 	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
 
@@ -504,6 +535,7 @@ void DrawScene()
 	d3d11DevCon->PSSetShaderResources(0, 1, &CubesTexture);
 	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
 	
+	d3d11DevCon->RSSetState(CWcullMode);
 	d3d11DevCon->DrawIndexed(36, 0, 0);
 
 	//Present the backbuffer to the screen
