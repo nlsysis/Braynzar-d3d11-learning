@@ -28,6 +28,9 @@ ID3D11BlendState* Transparency;
 ID3D11RasterizerState* CCWcullMode;
 ID3D11RasterizerState* CWcullMode;
 
+//for pixel clip
+ID3D11RasterizerState* noCull;
+
 extern HWND hwnd;
 extern HRESULT hr;
 
@@ -128,20 +131,24 @@ bool InitializeDirect3d11App(HINSTANCE hInstance)
 	d3d11DevCon->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
 	///////////////**************new**************////////////////////
 
-	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\braynzar.png",
+	/*hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\braynzar.png",
+		NULL, NULL, &CubesTexture, NULL);*/
+
+	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, ".\\Resource\\cage.jpg",
 		NULL, NULL, &CubesTexture, NULL);
 
-	D3D11_SAMPLER_DESC sampDesc;
-	ZeroMemory(&sampDesc, sizeof(sampDesc));
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	sampDesc.MinLOD = 0;
-	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	hr = d3d11Device->CreateSamplerState(&sampDesc, &CubesTexSamplerState);
+	D3D11_RASTERIZER_DESC rastDesc;
+	ZeroMemory(&rastDesc, sizeof(D3D11_RASTERIZER_DESC));
+	rastDesc.FillMode = D3D11_FILL_SOLID;
+	rastDesc.CullMode = D3D11_CULL_NONE;
+
+	d3d11Device->CreateRasterizerState(&rastDesc, &noCull);
+
+	d3d11DevCon->RSSetState(NULL);
+	//Draw objects that will use backface culling
+
+	d3d11DevCon->RSSetState(noCull);
 	return true;
 }
 
@@ -170,6 +177,8 @@ void CleanUp()
 	CWcullMode->Release();
 	//blender
 
+	//for pixel clip
+	noCull->Release();
 }
 
 bool InitScene()
@@ -483,13 +492,8 @@ void DrawScene()
 
 	d3d11DevCon->PSSetShaderResources(0, 1, &CubesTexture);
 	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
-	//Counter clockwise culling first because we need the back side of
-	//the cube to be rendered first, so the front side can blend with it
-	d3d11DevCon->RSSetState(CCWcullMode);
-	//Draw the first cube
-	d3d11DevCon->DrawIndexed(36, 0, 0);
 
-	d3d11DevCon->RSSetState(CWcullMode);
+	
 	d3d11DevCon->DrawIndexed(36, 0, 0);
 
 	WVP = cube2World * camView * camProjection;
@@ -500,13 +504,6 @@ void DrawScene()
 	d3d11DevCon->PSSetShaderResources(0, 1, &CubesTexture);
 	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
 	
-	//Counter clockwise culling first because we need the back side of
-	//the cube to be rendered first, so the front side can blend with it
-	d3d11DevCon->RSSetState(CCWcullMode);
-	//Draw the second cube
-	d3d11DevCon->DrawIndexed(36, 0, 0);
-
-	d3d11DevCon->RSSetState(CWcullMode);
 	d3d11DevCon->DrawIndexed(36, 0, 0);
 
 	//Present the backbuffer to the screen
