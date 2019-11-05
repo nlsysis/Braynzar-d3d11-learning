@@ -1,4 +1,5 @@
 #include "Graphic.h"
+#include "DXinput.h"
 
 //Global Declarations - Interfaces//
 IDXGISwapChain* SwapChain;
@@ -55,6 +56,15 @@ XMMATRIX Rotation;
 XMMATRIX Scale;
 XMMATRIX Translation;
 float rot = 0.01f;
+
+/////for test  input
+float rotx = 0;
+float rotz = 0;
+float scaleX = 1.0f;
+float scaleY = 1.0f;
+
+XMMATRIX Rotationx;
+XMMATRIX Rotationz;
 
 D3D11_INPUT_ELEMENT_DESC layout[] =
 {
@@ -472,18 +482,23 @@ void UpdateScene()
 	cube1World = XMMatrixIdentity();
 
 	//Define cube1's world space matrix
-	XMVECTOR rotaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	Rotation = XMMatrixRotationAxis(rotaxis, rot);
-	Translation = XMMatrixTranslation(0.0f, 0.0f, 4.0f);
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	XMVECTOR rotxaxis = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 
+	Rotation = XMMatrixRotationAxis(rotyaxis, rot);
+	Rotationx = XMMatrixRotationAxis(rotxaxis, rotx);
+	Rotationz = XMMatrixRotationAxis(rotzaxis, rotz);
+
+	Translation = XMMatrixTranslation(0.0f, 0.0f, 4.0f);
 	//Set cube1's world space using the transformations
-	cube1World = Translation * Rotation;
+	cube1World = Translation * Rotation * Rotationx * Rotationz;
 
 	//Reset cube2World
 	cube2World = XMMatrixIdentity();
 
 	//Define cube2's world space matrix
-	Rotation = XMMatrixRotationAxis(rotaxis, -rot);
+	Rotation = XMMatrixRotationAxis(rotxaxis, -rot);
 	Scale = XMMatrixScaling(1.3f, 1.3f, 1.3f);
 
 	//Set cube2's world space matrix
@@ -495,6 +510,17 @@ void UpdateScene()
 	light.pos.x = XMVectorGetX(lightVector);
 	light.pos.y = XMVectorGetY(lightVector);
 	light.pos.z = XMVectorGetZ(lightVector);
+
+	if (isPressed(DIK_LEFT))
+	{
+		rotz -= 1.0f;
+	}
+	if (isPressed(DIK_RIGHT))
+	{
+		rotz += 1.0f;
+	}
+
+	
 }
 
 void DrawScene()

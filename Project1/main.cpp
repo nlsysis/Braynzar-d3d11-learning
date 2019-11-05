@@ -1,6 +1,6 @@
 //Include and link appropriate libraries and headers//
 #include "Graphic.h"
-
+#include "DXinput.h"
 
 //Global Declarations - Others//
 LPCTSTR WndClassName = "firstwindow";
@@ -49,9 +49,18 @@ int WINAPI WinMain(HINSTANCE hInstance,    //Main windows function
 		return 0;
 	}
 
+	if (!InitDirectInput(hInstance))
+	{
+		MessageBox(0, "Direct Input Initialization - Failed",
+			"Error", MB_OK);
+		return 0;
+	}
+
 	messageloop();
 
 	CleanUp();
+
+	UninitDirectInput();
 
 	return 0;
 }
@@ -145,6 +154,7 @@ int messageloop() {
 			DispatchMessage(&msg);
 		}
 		else {
+			DetectInput(0.1);
 			// run game code            
 			UpdateScene();
 			DrawScene();

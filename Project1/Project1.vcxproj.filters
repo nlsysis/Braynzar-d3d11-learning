@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphic.cpp" />
+    <ClCompile Include="DXinput.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -16,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Graphic.h" />
+    <ClInclude Include="DXinput.h" />
   </ItemGroup>
 </Project>
