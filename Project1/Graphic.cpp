@@ -80,6 +80,10 @@ struct Light
 	}
 	XMFLOAT3 dir;
 	float pad;
+	XMFLOAT3 pos;
+	float range;
+	XMFLOAT3 att;
+	float pad2;
 	XMFLOAT4 ambient;
 	XMFLOAT4 diffuse;
 };
@@ -231,9 +235,12 @@ bool InitScene()
 
 	///////////////**************new**************////////////////////
 
-	light.dir = XMFLOAT3(0.25f, 0.5f, -1.0f);
-	light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	light.pos = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	light.range = 100.0f;
+	light.att = XMFLOAT3(0.0f, 0.2f, 0.0f);
+	light.ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 	light.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
 	//Create the vertex buffer
 	Vertex v[] =
 	{
@@ -416,7 +423,7 @@ bool InitScene()
 
 	rtbd.BlendEnable = true;
 	rtbd.SrcBlend = D3D11_BLEND_SRC_COLOR;
-	rtbd.DestBlend = D3D11_BLEND_BLEND_FACTOR;
+	rtbd.DestBlend = D3D11_BLEND_DEST_ALPHA;
 	rtbd.BlendOp = D3D11_BLEND_OP_ADD;
 	rtbd.SrcBlendAlpha = D3D11_BLEND_ONE;
 	rtbd.DestBlendAlpha = D3D11_BLEND_ZERO;
@@ -482,7 +489,12 @@ void UpdateScene()
 	//Set cube2's world space matrix
 	cube2World = Rotation * Scale;
 
+	XMVECTOR lightVector = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	lightVector = XMVector3TransformCoord(lightVector, cube1World);
 
+	light.pos.x = XMVectorGetX(lightVector);
+	light.pos.y = XMVectorGetY(lightVector);
+	light.pos.z = XMVectorGetZ(lightVector);
 }
 
 void DrawScene()
@@ -490,7 +502,6 @@ void DrawScene()
 	//Clear our backbuffer
 	float bgColor[4] = { (0.0f, 0.0f, 0.0f, 0.0f) };
 	d3d11DevCon->ClearRenderTargetView(renderTargetView, bgColor);
-
 	//Refresh the Depth/Stencil view
 	d3d11DevCon->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	
@@ -502,6 +513,7 @@ void DrawScene()
 	d3d11DevCon->VSSetShader(VS, 0, 0);
 	d3d11DevCon->PSSetShader(PS, 0, 0);
 	
+	d3d11DevCon->OMSetRenderTargets(1, &renderTargetView,depthStencilView);
 	//Set the default blend state (no blending) for opaque objects
 	d3d11DevCon->OMSetBlendState(0, 0, 0xffffffff);
 
