@@ -4,6 +4,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graphic.cpp" />
     <ClCompile Include="DXinput.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Ground.cpp" />
+    <ClCompile Include="Cube.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -18,5 +21,8 @@
   <ItemGroup>
     <ClInclude Include="Graphic.h" />
     <ClInclude Include="DXinput.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Ground.h" />
+    <ClInclude Include="Cube.h" />
   </ItemGroup>
 </Project>

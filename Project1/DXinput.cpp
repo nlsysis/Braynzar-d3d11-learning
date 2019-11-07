@@ -52,6 +52,14 @@ bool isPressed(BYTE key)
 	return (keyboardState[key] & 0x80);
 }
 
+bool isMouseMoved()
+{
+	bool isMoved = (mouseCurrState.lX != mouseLastState.lX || mouseCurrState.lY != mouseCurrState.lY);
+	mouseCurrState = mouseLastState;
+	return isMoved;
+
+}
+
 
 void UninitDirectInput()
 {

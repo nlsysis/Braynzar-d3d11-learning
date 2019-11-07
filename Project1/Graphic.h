@@ -10,8 +10,8 @@
 #include <d3dx10.h>
 #include <xnamath.h>
 
-#define WIDTH 300
-#define HEIGHT 300
+#define WIDTH 800
+#define HEIGHT 600
 
 //Function Prototypes//
 bool InitializeDirect3d11App(HINSTANCE hInstance);
@@ -31,4 +31,10 @@ struct Vertex    //Overloaded Vertex Structure
 	XMFLOAT3 pos;
 	XMFLOAT2 texCoord;
 	XMFLOAT3 normal;
+};
+
+struct cbPerObject
+{
+	XMMATRIX  WVP;
+	XMMATRIX World;
 };

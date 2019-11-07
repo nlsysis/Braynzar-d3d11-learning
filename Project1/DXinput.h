@@ -8,5 +8,6 @@
 bool InitDirectInput(HINSTANCE hInstance);
 void DetectInput(double time);
 bool isPressed(BYTE key);
+bool isMouseMoved();
 void UninitDirectInput();
 
