@@ -9,6 +9,7 @@ XMMATRIX Translation;
 
 XMMATRIX Rotationx;
 XMMATRIX Rotationz;
+
 extern HRESULT hr;
 extern XMMATRIX cube1World;
 extern float rot;

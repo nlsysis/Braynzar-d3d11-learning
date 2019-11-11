@@ -11,11 +11,11 @@ extern ID3D11Buffer* cbPerObjectBuffer;
 extern ID3D11SamplerState* CubesTexSamplerState;
 extern HRESULT hr;
 extern ID3D11RasterizerState* CCWcullMode;
-extern ID3D11DeviceContext* d3d11DevCon;
 extern cbPerObject cbPerObj;
 
 void InitGround(ID3D11Device* p_D3d11device,ID3D11Buffer* &c_squareVertBuffer, ID3D11Buffer* &c_squareIndexBuffer)
 {
+
 	//Create the vertex buffer
 	Vertex v[] =
 	{
@@ -30,6 +30,7 @@ void InitGround(ID3D11Device* p_D3d11device,ID3D11Buffer* &c_squareVertBuffer, I
 		0,  1,  2,
 		0,  2,  3,
 	};
+
 
 	D3D11_BUFFER_DESC indexBufferDesc;
 	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
@@ -72,7 +73,7 @@ void UpdateGround()
 	//Set cube1's world space using the transformations
 	groundWorld = Scale * Translation;
 }
-void DrawGround()
+void DrawGround(ID3D11DeviceContext* d3d11DevCon)
 {
 	WVP = groundWorld * camView * camProjection;
 	cbPerObj.WVP = XMMatrixTranspose(WVP);

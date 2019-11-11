@@ -144,6 +144,7 @@
     <ClCompile Include="Graphic.cpp" />
     <ClCompile Include="Ground.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Effects.fx">
@@ -163,6 +164,7 @@
     <ClInclude Include="DXinput.h" />
     <ClInclude Include="Ground.h" />
     <ClInclude Include="Graphic.h" />
+    <ClInclude Include="Skybox.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

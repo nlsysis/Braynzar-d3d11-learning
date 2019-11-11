@@ -3,6 +3,7 @@
 #include "Cube.h"
 #include "Camera.h"
 #include "Ground.h"
+#include "Skybox.h"
 
 //Global Declarations - Interfaces//
 IDXGISwapChain* SwapChain;
@@ -79,10 +80,6 @@ struct Light
 	}
 	XMFLOAT3 dir;
 	float pad;
-	XMFLOAT3 pos;
-	float range;
-	XMFLOAT3 att;
-	float pad2;
 	XMFLOAT4 ambient;
 	XMFLOAT4 diffuse;
 };
@@ -182,6 +179,8 @@ bool InitializeDirect3d11App(HINSTANCE hInstance)
 	//Draw objects that will use backface culling
 
 	d3d11DevCon->RSSetState(noCull);
+
+	InitSkybox(d3d11Device);
 	return true;
 }
 
@@ -219,10 +218,12 @@ void CleanUp()
 	//for lighting
 	//d2dTexture->Release();
 	cbPerFrameBuffer->Release();
+	UninitSphere();
 }
 
 bool InitScene()
 {
+	
 	//Compile Shaders from shader file
 	hr = D3DX11CompileFromFile("Effects.fx", 0, 0, "VS", "vs_4_0", 0, 0, 0, &VS_Buffer, 0, 0);
 	hr = D3DX11CompileFromFile("Effects.fx", 0, 0, "PS", "ps_4_0", 0, 0, 0, &PS_Buffer, 0, 0);
@@ -239,10 +240,14 @@ bool InitScene()
 
 	///////////////**************new**************////////////////////
 
-	light.pos = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	light.range = 100.0f;
-	light.att = XMFLOAT3(0.0f, 0.2f, 0.0f);
-	light.ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	//light.pos = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//light.range = 100.0f;
+	//light.att = XMFLOAT3(0.0f, 0.2f, 0.0f);
+	//light.ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+	//light.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	light.dir = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	light.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	//InitCube(d3d11Device, squareVertBuffer, squareIndexBuffer);
@@ -364,6 +369,8 @@ bool InitScene()
 	cbbd.MiscFlags = 0;
 
 	hr = d3d11Device->CreateBuffer(&cbbd, NULL, &cbPerFrameBuffer);
+
+	CreateSphere(d3d11Device, 10, 10);
 	return true;
 }
 
@@ -379,14 +386,14 @@ void UpdateScene()
 		rot = 0.0f;
 
 	//UpdateCube();
-	UpdateGround();
+	
 
-	XMVECTOR lightVector = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-	lightVector = XMVector3TransformCoord(lightVector, cube1World);
+	//XMVECTOR lightVector = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+	//lightVector = XMVector3TransformCoord(lightVector, cube1World);
 
-	light.pos.x = XMVectorGetX(lightVector);
-	light.pos.y = XMVectorGetY(lightVector);
-	light.pos.z = XMVectorGetZ(lightVector);
+	//light.pos.x = XMVectorGetX(lightVector);
+	//light.pos.y = XMVectorGetY(lightVector);
+	//light.pos.z = XMVectorGetZ(lightVector);
 
 	if (isPressed(DIK_LEFT))
 	{
@@ -398,6 +405,8 @@ void UpdateScene()
 	}
 	//using camera
 	UpdateCamera();
+	UpdateGround();
+	UpdateSkybox();
 }
 
 void DrawScene()
@@ -412,18 +421,21 @@ void DrawScene()
 	d3d11DevCon->UpdateSubresource(cbPerFrameBuffer, 0, NULL, &constbuffPerFrame, 0, 0);
 	d3d11DevCon->PSSetConstantBuffers(0, 1, &cbPerFrameBuffer);
 
-	//Reset Vertex and Pixel Shaders
-	d3d11DevCon->VSSetShader(VS, 0, 0);
-	d3d11DevCon->PSSetShader(PS, 0, 0);
-	
-	d3d11DevCon->OMSetRenderTargets(1, &renderTargetView,depthStencilView);
+	d3d11DevCon->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
 	//Set the default blend state (no blending) for opaque objects
 	d3d11DevCon->OMSetBlendState(0, 0, 0xffffffff);
 
+	//Reset Vertex and Pixel Shaders
+	d3d11DevCon->VSSetShader(VS, 0, 0);
+	d3d11DevCon->PSSetShader(PS, 0, 0);
 
 	//DrawCube();
-	DrawGround();
+	DrawGround(d3d11DevCon);
 
+
+	DrawSkybox(d3d11DevCon);
+	
+	
 	//Present the backbuffer to the screen
 	SwapChain->Present(0, 0);
 }
