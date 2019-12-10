@@ -197,7 +197,7 @@ void CleanUp()
 	///////////////**************new**************////////////////////
 	squareVertBuffer->Release();
 	squareIndexBuffer->Release();
-	///////////////**************new**************////////////////////
+	///////////////**************new**************//ObjSamplerState//////////////////
 	VS->Release();
 	PS->Release();
 	VS_Buffer->Release();
@@ -435,7 +435,10 @@ void DrawScene()
 
 	DrawSkybox(d3d11DevCon);
 	
-	
+	//Set the default VS shader and depth/stencil state
+	d3d11DevCon->VSSetShader(VS, 0, 0);
+	d3d11DevCon->PSSetShader(PS, 0, 0);
+	d3d11DevCon->OMSetDepthStencilState(NULL, 0);
 	//Present the backbuffer to the screen
 	SwapChain->Present(0, 0);
 }

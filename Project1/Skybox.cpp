@@ -251,8 +251,6 @@ void DrawSkybox(ID3D11DeviceContext* d3d11DevCon)
 	d3d11DevCon->RSSetState(RSCullNone);
 	d3d11DevCon->DrawIndexed(NumSphereFaces * 3, 0, 0);
 
-	//Set the default VS shader and depth/stencil state
-	d3d11DevCon->VSSetShader(VS, 0, 0);
-	d3d11DevCon->OMSetDepthStencilState(NULL, 0);
+	
 
 }
